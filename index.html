@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eBay Niche & Sourcing Finder</title>
+    <style>
+        /* --- CSS VARIABLES & RESET --- */
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #475569;
+            --radius: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* --- LAYOUT --- */
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+        }
+
+        header h1 { font-size: 1.8rem; color: var(--accent); }
+        
+        .settings-btn {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .settings-btn:hover { background: var(--bg-card); }
+
+        /* --- CONTROLS --- */
+        .controls {
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: var(--radius);
+            margin-bottom: 30px;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 15px;
+            align-items: end;
+        }
+
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group label { font-size: 0.85rem; color: var(--text-secondary); font-weight: 600; }
+        
+        input, select {
+            padding: 10px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--accent); }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            height: 42px;
+        }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-primary:disabled { background: var(--border); cursor: not-allowed; }
+
+        /* --- RESULTS GRID --- */
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .product-card {
+            background: var(--bg-secondary);
+            border-radius: var(--radius);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+
+        .card-img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: var(--bg-card);
+        }
+
+        .card-body { padding: 15px; flex: 1; display: flex; flex-direction: column; }
+        .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 10px; line-height: 1.4; }
+        .card-price { font-size: 1.25rem; color: var(--success); font-weight: bold; margin-bottom: 10px; }
+        
+        .card-meta { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 5px; display: flex; align-items: center; gap: 5px;}
+        .card-meta strong { color: var(--text-primary); }
+
+        .card-footer {
+            margin-top: auto;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .badge-new { background: rgba(59, 130, 246, 0.2); color: var(--accent); }
+        .badge-top { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+
+        /* --- MODAL --- */
+        .modal-overlay {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); z-index: 100;
+            justify-content: center; align-items: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--bg-secondary);
+            padding: 30px;
+            border-radius: var(--radius);
+            width: 90%; max-width: 500px;
+            border: 1px solid var(--border);
+        }
+        .modal h2 { margin-bottom: 20px; }
+        .modal .form-group { margin-bottom: 15px; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+        /* --- UTILITIES --- */
+        .loader {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+        .loader.active { display: block; }
+        .spinner {
+            border: 4px solid var(--bg-card);
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            width: 40px; height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .warning-banner {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            color: #fca5a5;
+            padding: 10px;
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 768px) {
+            .controls { grid-template-columns: 1fr; }
+            header { flex-direction: column; gap: 15px; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <header>
+            <h1>📦 eBay Niche & Sourcing Finder</h1>
+            <button class="settings-btn" id="openSettings">⚙️ API Settings</button>
+        </header>
+
+        <div class="warning-banner" id="warningBanner">
+            ⚠️ <strong>Dev Mode:</strong> Running directly in browser via CORS Proxy. For production, move API calls to a secure backend server.
+        </div>
+
+        <div class="controls">
+            <div class="form-group">
+                <label>Search Keyword / Niche</label>
+                <input type="text" id="searchKeyword" placeholder="e.g., vintage camera, mechanical keyboard" value="vintage camera">
+            </div>
+            <div class="form-group">
+                <label>eBay Country</label>
+                <select id="countrySelect">
+                    <option value="EBAY_US">🇺🇸 United States</option>
+                    <option value="EBAY_UK">🇬🇧 United Kingdom</option>
+                    <option value="EBAY_DE">🇩🇪 Germany</option>
+                    <option value="EBAY_AU">🇦🇺 Australia</option>
+                    <option value="EBAY_CA">🇨🇦 Canada</option>
+                    <option value="EBAY_FR">🇫🇷 France</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Data Type</label>
+                <select id="sortSelect">
+                    <option value="newlyListed">🆕 New Listings</option>
+                    <option value="bestMatch">🔥 Top Selling (Best Match)</option>
+                </select>
+            </div>
+            <button class="btn-primary" id="fetchBtn">Fetch Data</button>
+        </div>
+
+        <div class="results-header">
+            <h2 id="resultsTitle">Search Results</h2>
+            <span id="resultsCount" style="color: var(--text-secondary);"></span>
+        </div>
+
+        <div class="loader" id="loader">
+            <div class="spinner"></div>
+            <p>Scraping eBay API data...</p>
+        </div>
+
+        <div class="results-grid" id="resultsGrid">
+            <!-- Cards will be injected here -->
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <h2>API Configuration</h2>
+            <div class="form-group">
+                <label>eBay OAuth Application Access Token</label>
+                <input type="password" id="apiTokenInput" placeholder="v^1.1#i^1...">
+                <small style="color: var(--text-secondary); font-size: 0.8rem;">Get this from the eBay Developer Portal. It expires every 2 hours.</small>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="useCorsProxy" checked> 
+                    Use Public CORS Proxy (Required for local browser testing)
+                </label>
+            </div>
+            <div class="modal-actions">
+                <button class="settings-btn" id="closeSettings">Cancel</button>
+                <button class="btn-primary" id="saveSettings">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- STATE MANAGEMENT ---
+        const state = {
+            token: localStorage.getItem('ebay_token') || '',
+            useCorsProxy: localStorage.getItem('ebay_cors') !== 'false',
+            isLoading: false
+        };
+
+        // --- DOM ELEMENTS ---
+        const elements = {
+            fetchBtn: document.getElementById('fetchBtn'),
+            grid: document.getElementById('resultsGrid'),
+            loader: document.getElementById('loader'),
+            keyword: document.getElementById('searchKeyword'),
+            country: document.getElementById('countrySelect'),
+            sort: document.getElementById('sortSelect'),
+            resultsTitle: document.getElementById('resultsTitle'),
+            resultsCount: document.getElementById('resultsCount'),
+            modal: document.getElementById('settingsModal'),
+            tokenInput: document.getElementById('apiTokenInput'),
+            corsCheckbox: document.getElementById('useCorsProxy'),
+            warning: document.getElementById('warningBanner')
+        };
+
+        // --- INITIALIZATION ---
+        function init() {
+            elements.tokenInput.value = state.token;
+            elements.corsCheckbox.checked = state.useCorsProxy;
+            updateWarningBanner();
+
+            // Event Listeners
+            elements.fetchBtn.addEventListener('click', fetchData);
+            document.getElementById('openSettings').addEventListener('click', () => elements.modal.classList.add('active'));
+            document.getElementById('closeSettings').addEventListener('click', () => elements.modal.classList.remove('active'));
+            document.getElementById('saveSettings').addEventListener('click', saveSettings);
+        }
+
+        function saveSettings() {
+            state.token = elements.tokenInput.value.trim();
+            state.useCorsProxy = elements.corsCheckbox.checked;
+            localStorage.setItem('ebay_token', state.token);
+            localStorage.setItem('ebay_cors', state.useCorsProxy);
+            elements.modal.classList.remove('active');
+            updateWarningBanner();
+        }
+
+        function updateWarningBanner() {
+            elements.warning.style.display = state.useCorsProxy ? 'block' : 'none';
+        }
+
+        // --- CORE API LOGIC ---
+        async function fetchData() {
+            if (!state.token) {
+                alert("Please set your eBay OAuth Token in the Settings menu.");
+                elements.modal.classList.add('active');
+                return;
+            }
+
+            const keyword = elements.keyword.value.trim();
+            const country = elements.country.value;
+            const sort = elements.sort.value;
+
+            if (!keyword) return alert("Please enter a search keyword.");
+
+            setLoading(true);
+            elements.grid.innerHTML = '';
+
+            // Base eBay API URL
+            let apiUrl = `https://api.ebay.com/buy/browse/v1/item_summary/search?q=${encodeURIComponent(keyword)}&sort=${sort}&limit=12&filter=buyingOptions:{FIXED_PRICE}`;
+            
+            // If using CORS proxy for local dev testing
+            if (state.useCorsProxy) {
+                apiUrl = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
+            }
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${state.token}`,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-EBAY-C-MARKETPLACE-ID': country,
+                        // Note: Some CORS proxies strip custom headers. 
+                        // If you get errors, you may need to pass the Marketplace ID in the URL or use a backend.
+                    }
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.errors?.[0]?.message || `API Error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                renderResults(data.itemSummaries || [], sort, country);
+
+            } catch (error) {
+                console.error(error);
+                elements.grid.innerHTML = `<p style="color: var(--danger); grid-column: 1/-1; text-align: center; padding: 40px;">Error fetching data: ${error.message}<br><small>Check your token, or ensure your CORS proxy supports custom headers.</small></p>`;
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // --- RENDERING ---
+        function renderResults(items, sortType, country) {
+            elements.resultsTitle.textContent = sortType === 'newlyListed' ? '🆕 New Listings' : '🔥 Top Selling Products';
+            elements.resultsCount.textContent = `${items.length} items found in ${country.replace('EBAY_', '')}`;
+
+            if (items.length === 0) {
+                elements.grid.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--text-secondary);">No items found. Try a different keyword.</p>`;
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+
+            items.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+
+                const img = item.image?.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image';
+                const title = item.title || 'Untitled Product';
+                const price = item.price?.value ? `${item.price.currency} ${item.price.value}` : 'N/A';
+                const category = item.categoryPath || 'Uncategorized';
+                
+                // Sourcing / Location Data
+                const location = item.itemLocation?.country || 'Unknown';
+                const city = item.itemLocation?.city || '';
+                const sourcingText = city ? `${city}, ${location}` : location;
+
+                const badgeClass = sortType === 'newlyListed' ? 'badge-new' : 'badge-top';
+                const badgeText = sortType === 'newlyListed' ? 'New Listing' : 'Top Seller';
+
+                card.innerHTML = `
+                    <img src="${img}" alt="${title}" class="card-img" onerror="this.src='https://via.placeholder.com/300x200?text=Image+Missing'">
+                    <div class="card-body">
+                        <div class="card-title">${title}</div>
+                        <div class="card-price">${price}</div>
+                        <div class="card-meta">📂 <strong>Category:</strong> ${category}</div>
+                        <div class="card-meta">📍 <strong>Sourcing/Location:</strong> ${sourcingText}</div>
+                        <div class="card-footer">
+                            <span class="badge ${badgeClass}">${badgeText}</span>
+                            <a href="${item.itemWebUrl}" target="_blank" style="color: var(--accent); text-decoration: none; font-size: 0.9rem; font-weight: 600;">View on eBay →</a>
+                        </div>
+                    </div>
+                `;
+                fragment.appendChild(card);
+            });
+
+            elements.grid.appendChild(fragment);
+        }
+
+        function setLoading(isLoading) {
+            state.isLoading = isLoading;
+            elements.fetchBtn.disabled = isLoading;
+            elements.fetchBtn.textContent = isLoading ? 'Fetching...' : 'Fetch Data';
+            elements.loader.classList.toggle('active', isLoading);
+        }
+
+        // Start the app
+        init();
+    </script>
+</body>
+</html>
